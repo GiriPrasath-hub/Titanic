@@ -6,20 +6,27 @@ inference, decoding, and model metadata utilities.
 
 import os
 import pickle
+from pathlib import Path
 from typing import Any, Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
+# Base directory using Path
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Cache instances
+_MODEL_INSTANCE = None
+_ENCODER_INSTANCE = None
+
 
 def load_model(
-    model_path: str = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "model", "model.pkl"
-    ),
+    model_path: str = str(BASE_DIR / "model" / "model.pkl"),
 ) -> Pipeline:
     """
     Loads the complete sklearn Pipeline from a pickle file.
+    Caches the loaded pipeline to prevent repeated disk reads.
 
     Args:
         model_path (str): Path to the model.pkl file.
@@ -27,20 +34,21 @@ def load_model(
     Returns:
         Pipeline: Loaded sklearn Pipeline.
     """
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model file not found at: {model_path}")
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
-    return model
+    global _MODEL_INSTANCE
+    if _MODEL_INSTANCE is None:
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found at: {model_path}")
+        with open(model_path, "rb") as f:
+            _MODEL_INSTANCE = pickle.load(f)
+    return _MODEL_INSTANCE
 
 
 def load_encoder(
-    encoder_path: str = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "model", "encoder.pkl"
-    ),
+    encoder_path: str = str(BASE_DIR / "model" / "encoder.pkl"),
 ) -> Any:
     """
     Loads the fitted OneHotEncoder from a pickle file.
+    Caches the loaded encoder to prevent repeated disk reads.
 
     Args:
         encoder_path (str): Path to the encoder.pkl file.
@@ -48,11 +56,13 @@ def load_encoder(
     Returns:
         Any: Loaded OneHotEncoder.
     """
-    if not os.path.exists(encoder_path):
-        raise FileNotFoundError(f"Encoder file not found at: {encoder_path}")
-    with open(encoder_path, "rb") as f:
-        encoder = pickle.load(f)
-    return encoder
+    global _ENCODER_INSTANCE
+    if _ENCODER_INSTANCE is None:
+        if not os.path.exists(encoder_path):
+            raise FileNotFoundError(f"Encoder file not found at: {encoder_path}")
+        with open(encoder_path, "rb") as f:
+            _ENCODER_INSTANCE = pickle.load(f)
+    return _ENCODER_INSTANCE
 
 
 def validate_input(data: dict) -> Tuple[bool, str]:
